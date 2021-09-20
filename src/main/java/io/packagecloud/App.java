@@ -1,7 +1,9 @@
 package io.packagecloud;
 
 import java.io.File;
+import java.io.File.write;
 import java.io.FileOutputStream;
+import java.io.FileOutputStream.write;
 
 /**
  * Hello world!
