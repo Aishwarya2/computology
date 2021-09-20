@@ -1,59 +1,48 @@
 package io.packagecloud;
 
-import java.rmi.Remote;
-import java.rmi.RemoteException;
-import java.rmi.registry.Registry;
-import java.rmi.registry.LocateRegistry;
-import java.rmi.RemoteException;
-import java.rmi.server.UnicastRemoteObject;
-import java.xml.rpc.Stub; 
-import org.apache.soap.rpc;
+import org.apache.hadoop.conf.Configured;
+import org.apache.hadoop.util.Tool;
+
+import java.io.BufferedInputStream;
+import java.io.FileInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.io.IOUtils;
+import org.apache.hadoop.util.ToolRunner;
 
 
 /**
  * Hello world!
  *
  */
-public class App
+public class App extends Configured implements Tool
 {
-    public static void main( String[] args )
-    {
-        System.out.println( "Hello World!" );
-    }
-
-    static void server() {
-        try {
-            Server obj = new Server();
-            Hello stub = (Hello) UnicastRemoteObject.exportObject(obj, 0);
-
-            // Bind the remote object's stub in the registry
-            Registry registry = LocateRegistry.getRegistry();
-            registry.bind("Hello", stub);
-
-            System.err.println("Server ready");
-        } catch (Exception e) {
-            System.err.println("Server exception: " + e.toString());
-            e.printStackTrace();
+    public static final String FS_PARAM_NAME = "fs.defaultFS";
+    
+    public int run(String[] args) throws Exception {
+        
+        if (args.length < 2) {
+            System.err.println("HdfsReader [hdfs input path] [local output path]");
+            return 1;
         }
+        
+        Path inputPath = new Path(args[0]);
+        String localOutputPath = args[1];
+        Configuration conf = getConf();
+        System.out.println("configured filesystem = " + conf.get(FS_PARAM_NAME));
+        FileSystem fs = FileSystem.get(conf);
+        InputStream is = fs.open(inputPath);
+        OutputStream os = new BufferedOutputStream(new FileOutputStream(localOutputPath));
+        IOUtils.copyBytes(is, os, conf);
+        return 0;
     }
-
-        static void client() {
-            String host = "temp";
-        try {
-            Registry registry = LocateRegistry.getRegistry(host);
-            Hello stub = (Hello) registry.lookup("Hello");
-            String response = stub.sayHello();
-            System.out.println("response: " + response);
-        } catch (Exception e) {
-            System.err.println("Client exception: " + e.toString());
-            e.printStackTrace();
-        }
+    
+    public static void main( String[] args ) throws Exception {
+        int returnCode = ToolRunner.run(new HdfsReader(), args);
+        System.exit(returnCode);
     }
-
-    static void tryingSOAP() {
-        service = ServiceFactory.newInstance().createService(new QName(""));
-        Call call = new org.apache.soap.rpc.Call();
-        call = service.createCall();
-    }
-
+    
 }
